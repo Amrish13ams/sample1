@@ -2,142 +2,313 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Focal Jewelry Slider</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minimal Focal Jewelry Slider & AR Try-On</title>
+    
+    <!-- MediaPipe Global CDN Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
     <style>
         /* 1. CORE SETUP & THEME (Low Contrast / Analog / Lens Aesthetic) */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background-color: #fafafa;
+            background: linear-gradient(135deg, #e3d9fc 0%, #d1e4fc 50%, #c9f5fc 100%);
             min-height: 100vh;
             width: 100vw;
             display: flex;
             flex-direction: column;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow-x: hidden;
+            overflow: hidden;
             user-select: none;
             position: relative;
         }
 
-        /* VIBRANT BACKGROUND REFRACTION ORBS (Crucial for testing Glass Lens blur/refraction) */
+        /* VIBRANT BACKGROUND REFRACTION ORBS */
         .color-orb {
             position: absolute;
             border-radius: 50%;
-            filter: blur(50px);
+            filter: blur(80px);
             z-index: 1;
-            opacity: 0.55;
+            opacity: 0.5;
             pointer-events: none;
+            animation: floatOrb 12s ease-in-out infinite alternate;
         }
         .orb-1 {
             top: -20px;
             left: -20px;
-            width: 180px;
-            height: 180px;
-            background: radial-gradient(circle, #2dd4bf 0%, rgba(45, 212, 191, 0) 70%);
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, #e8dbfc 0%, rgba(232, 219, 252, 0) 75%);
         }
         .orb-2 {
-            top: -30px;
+            top: -40px;
             right: -20px;
-            width: 190px;
-            height: 190px;
-            background: radial-gradient(circle, #ec4899 0%, rgba(236, 72, 153, 0) 70%);
-        }
-        .orb-3 {
-            bottom: 8%;
-            left: -80px;
             width: 280px;
             height: 280px;
-            background: radial-gradient(circle, #3b82f6 0%, rgba(59, 130, 246, 0) 70%);
-            opacity: 0.3;
+            background: radial-gradient(circle, #fcdbe8 0%, rgba(252, 219, 232, 0) 75%);
+            animation-delay: -3s;
+        }
+        .orb-3 {
+            bottom: 5%;
+            left: -50px;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, #dbebfc 0%, rgba(219, 235, 252, 0) 75%);
+            animation-delay: -6s;
         }
 
-        /* 2. GLASS LENS NAVIGATION BUTTONS */
+        @keyframes floatOrb {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, 20px) scale(1.15); }
+        }
+
+        /* 2. SPECULAR CRYSTAL GLASS UTILITIES (Exact Apple iOS / image_7c22d4.png styling) */
+        .liquid-glass-element {
+            position: relative;
+            backdrop-filter: blur(30px) saturate(140%) contrast(100%);
+            -webkit-backdrop-filter: blur(30px) saturate(140%) contrast(100%);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-top: 1.5px solid rgba(255, 255, 255, 0.7);
+            border-bottom: 1.5px solid rgba(255, 255, 255, 0.2);
+            /* Complex shadow stack imitating refractive glass physical thickness & beading edge */
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.65),
+                inset 0 8px 16px rgba(255, 255, 255, 0.25),
+                inset 0 -8px 16px rgba(0, 0, 0, 0.03),
+                0 15px 35px rgba(100, 115, 200, 0.22),  /* Soft light-refractive color shadow */
+                0 5px 15px rgba(0, 0, 0, 0.05),         /* Soft ambient shadow */
+                0 0 1px 1px rgba(255, 255, 255, 0.15);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+            transform: scale(1.04);
+            transform-origin: center;
+        }
+
+        /* Specification: Glossy top reflection highlight */
+        .liquid-glass-element::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 50%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 100%);
+            border-radius: inherit;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Specification: Soft reflection glare sweep on hover */
+        .liquid-glass-element::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%);
+            transform: skewX(-25deg);
+            transition: none;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        /* Interactive active transitions */
+        .liquid-glass-element:hover {
+            border-color: rgba(255, 255, 255, 0.6);
+            border-top-color: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 10px 20px rgba(255, 255, 255, 0.35),
+                inset 0 -10px 20px rgba(0, 0, 0, 0.04),
+                0 20px 40px rgba(100, 115, 200, 0.3),  /* Intensified ambient color shadow */
+                0 8px 20px rgba(0, 0, 0, 0.06),
+                0 0 1px 2px rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px) scale(1.08); /* Elevated Zoom Profile */
+        }
+
+        .liquid-glass-element:hover::after {
+            left: 200%;
+            transition: left 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .liquid-glass-element:active {
+            transform: scale(0.97) translateY(1px);
+            background: rgba(255, 255, 255, 0.02);
+            box-shadow: 
+                inset 0 2px 4px rgba(0, 0, 0, 0.1),
+                0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 3. GLASS LENS NAVIGATION HEADERS */
         header {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 20px;
-            position: relative;
+            position: absolute;
+            top: 0;
+            left: 0;
             z-index: 100;
         }
 
-        /* Unified glass-lens baseline parameters */
-        #switchCameraBtn, #menuBtn {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(245, 245, 245, 0.55) 100%);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1.5px solid rgba(85, 85, 85, 0.25);
-            color: #444444;
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Segmented control matching Control Center layout */
+        .segmented-control {
+            border-radius: 9999px;
+            padding: 4px;
+            transform: scale(1.04);
+            transform-origin: center;
+        }
+
+        .segment-btn {
+            background: none;
+            border: none;
+            padding: 8px 22px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #111111; /* Darkened resting text color for high-contrast legibility */
+            border-radius: 9999px;
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            letter-spacing: 0.4px;
             outline: none;
-            /* Multi-layered box shadows to simulate depth, inner refraction, and soft outward light diffusion */
+            position: relative;
+            z-index: 5;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+        }
+
+        .segment-btn.active {
+            background: rgba(255, 255, 255, 0.85);
+            color: #000000; /* Darkened active text color */
+            font-weight: 800;
             box-shadow: 
-                inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
-                inset 0 -1.5px 2px rgba(0, 0, 0, 0.05),
-                0 4px 14px rgba(85, 85, 85, 0.1), 
-                0 1px 3px rgba(85, 85, 85, 0.05);
+                inset 0 1px 0 rgba(255, 255, 255, 0.5),
+                0 4px 12px rgba(0, 0, 0, 0.06);
+            text-shadow: none;
         }
 
         #switchCameraBtn {
+            padding: 10px 20px;
+            border-radius: 9999px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-10px) scale(1.04);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            color: #000000; /* Darkened text */
             font-weight: 700;
-            font-size: 13px;
-            padding: 10px 22px;
-            border-radius: 9999px; /* Pill profile like an anamorphic glass lens */
-            letter-spacing: 0.3px;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.4);
         }
 
-        #menuBtn {
+        #switchCameraBtn.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0) scale(1.04);
+        }
+
+        /* Right Header Container to hold Menu and Sort buttons */
+        .right-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #menuBtn, #sortBtn {
             width: 44px;
             height: 44px;
-            border-radius: 50%; /* Pure circular camera lens outline */
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        /* Tactile lens interaction states */
-        #switchCameraBtn:hover, #menuBtn:hover {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.5) 50%, rgba(245, 245, 245, 0.65) 100%);
-            box-shadow: 
-                inset 0 1.5px 3px rgba(255, 255, 255, 1), 
-                inset 0 -1.5px 3px rgba(0, 0, 0, 0.08),
-                0 8px 20px rgba(85, 85, 85, 0.15), 
-                0 2px 5px rgba(85, 85, 85, 0.08);
-            transform: translateY(-1.5px);
+        #menuBtn svg, #sortBtn svg {
+            fill: #000000; /* Darkened menu SVG icon */
         }
 
-        #switchCameraBtn:active, #menuBtn:active {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(245, 245, 245, 0.45) 100%);
-            box-shadow: 
-                inset 0 1.5px 3px rgba(0, 0, 0, 0.12), 
-                inset 0 -1.5px 2px rgba(255, 255, 255, 0.6),
-                0 2px 6px rgba(85, 85, 85, 0.06);
-            transform: translateY(1px);
+        #switchCameraBtn:hover, #menuBtn:hover, #sortBtn:hover {
+            transform: translateY(-2px) scale(1.1); /* Slightly zoom as floating above the screen */
         }
 
-        /* 3. DROPDOWN GLASS MENU */
+        /* 4. WEIGHT SORT/FILTER DRAWER PANEL */
+        #weightFilterBar {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            border-radius: 20px;
+            z-index: 95;
+            color: #111111;
+            font-size: 13px;
+            font-weight: 700;
+            transform: translateY(-20px) scale(0.95);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+        }
+
+        #weightFilterBar.show {
+            transform: translateY(0) scale(1.04);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .glass-input {
+            width: 65px;
+            padding: 6px 8px;
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            color: #000000;
+            font-weight: 800;
+            font-size: 12px;
+            text-align: center;
+            outline: none;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.45);
+            border-color: rgba(255, 255, 255, 0.85);
+            box-shadow: 
+                inset 0 1px 2px rgba(0,0,0,0.05),
+                0 0 8px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Hide HTML5 number spin arrows */
+        .glass-input::-webkit-outer-spin-button,
+        .glass-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .glass-input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* 5. DROPDOWN GLASS MENU */
         .menu-container { position: relative; }
 
         #dropdownMenu {
             position: absolute;
             top: calc(100% + 12px);
             right: 0;
-            width: 160px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(245, 245, 245, 0.75) 100%);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1.5px solid rgba(85, 85, 85, 0.25);
-            border-radius: 14px;
-            box-shadow: 
-                inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
-                0 8px 24px rgba(85, 85, 85, 0.12);
+            width: 165px;
+            border-radius: 18px; 
             opacity: 0;
             transform: translateY(-10px);
             pointer-events: none;
@@ -159,15 +330,16 @@
         .menu-item {
             background: none;
             border: none;
-            border-bottom: 1px solid rgba(85, 85, 85, 0.1);
-            color: #555555;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            color: #000000; /* Darkened menu items */
             padding: 13px 18px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             text-align: left;
             cursor: pointer;
             width: 100%;
             transition: all 0.15s ease;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.4);
         }
 
         .menu-item:last-child {
@@ -175,23 +347,23 @@
         }
 
         .menu-item:hover { 
-            background: rgba(85, 85, 85, 0.05); 
-            color: #333333;
-            padding-left: 22px; /* Soft interactive nudge */
+            background: rgba(255, 255, 255, 0.18); 
+            color: #000000;
+            padding-left: 24px;
         }
 
-        /* 4. GALLERY WRAPPER (Houses both the fixed viewer and the scrollable list) */
+        /* 6. GALLERY WRAPPER (Dynamic slide-in on selection) */
         #galleryWrapper {
             position: fixed;
             right: 25px;
             top: 50%;
-            transform: translateY(-50%) translateX(100px); /* Transition layout together */
-            width: 110px; /* Aligns perfectly with the 100px wide cards + 5px margins on each side */
-            height: 520px; /* Constrained boundary area */
+            transform: translateY(-50%) translateX(120px);
+            width: 110px;
+            height: 520px;
             z-index: 40;
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
             opacity: 0;
-            pointer-events: none; /* Let background clicks pass through */
+            pointer-events: none;
         }
 
         #galleryWrapper.show {
@@ -200,242 +372,239 @@
             pointer-events: auto;
         }
 
-        /* CONSTANT LENS OUTLINE BOX (High-end metallic retention frame design) */
+        /* iOS GLOSSY VIEWFINDER FOCUS BRACKET */
         #focalOutline {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 104px; /* Perfectly wraps a 100px card centered with an exact 2px outline gap on all sides */
+            width: 104px;
             height: 104px;
-            border: 2px solid rgba(85, 85, 85, 0.7);
-            border-radius: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            border-radius: 22px; 
             pointer-events: none;
-            z-index: 45; /* Sits directly over the passing items */
+            z-index: 45;
             box-shadow: 
-                0 0 0 1px rgba(255, 255, 255, 0.8),
-                inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+                0 0 0 1px rgba(0, 0, 0, 0.04),
+                inset 0 0 0 1.5px rgba(255, 255, 255, 0.3);
         }
 
-        /* Outward micro-focus markings to resemble luxury optical instruments */
         #focalOutline::before {
             content: '';
             position: absolute;
-            top: -7px;
-            left: -7px;
-            right: -7px;
-            bottom: -7px;
-            border: 1px solid rgba(85, 85, 85, 0.25);
-            border-radius: 24px;
-            opacity: 0.6;
+            top: -7px; left: -7px; right: -7px; bottom: -7px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 28px;
+            opacity: 0.8;
         }
 
-        /* 5. THE SCROLLABLE VERTICAL GALLERY */
+        /* VERTICAL SLIDING SHELF */
         #necklaceGallery {
             width: 100%;
             height: 100%;
             overflow-y: scroll;
             display: flex;
             flex-direction: column;
-            align-items: center; /* Enforces absolute horizontal centering for the scrolling cards */
+            align-items: center;
             gap: 20px;
-            padding: 210px 0; /* Symmetrical padding so first/last items can reach the center box perfectly */
+            padding: 210px 0;
             scrollbar-width: none;
             scroll-snap-type: y mandatory;
         }
 
         #necklaceGallery::-webkit-scrollbar { display: none; }
 
-        /* OPTICAL GLASS GALLERY CARDS */
+        /* Pure iOS-Style Transparent Curved Edge Liquid Glass Design Cards */
         .gallery-card {
             flex-shrink: 0;
             width: 100px;
             height: 100px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.35) 100%);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1.5px solid rgba(85, 85, 85, 0.2);
-            border-radius: 18px; /* Smooth curved optical profile */
-            box-shadow: 
-                inset 0 1.5px 2px rgba(255, 255, 255, 0.9), 
-                inset 0 -1.5px 2px rgba(0, 0, 0, 0.04),
-                0 4px 12px rgba(85, 85, 85, 0.06);
+            border-radius: 20px; /* Smooth iOS Squircle Curve */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             scroll-snap-align: center;
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, border-color 0.2s ease;
             cursor: pointer;
         }
 
-        /* Hover states for interactive magnifier cells */
         .gallery-card:hover {
-            border-color: rgba(85, 85, 85, 0.45);
-            box-shadow: 
-                inset 0 1.5px 3px rgba(255, 255, 255, 1), 
-                inset 0 -1.5px 2px rgba(0, 0, 0, 0.06),
-                0 6px 16px rgba(85, 85, 85, 0.1);
+            transform: scale(1.08);
         }
 
         .svg-container {
-            width: 60%;
-            height: 60%;
-            margin-bottom: 5px;
+            width: 65%;
+            height: 65%;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .svg-container svg {
+        .svg-container img {
             width: 100%;
             height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
         }
 
         .card-name {
             font-size: 8.5px;
             font-weight: 800;
-            color: #555555;
+            color: #111111; /* Darkened card names */
             text-transform: uppercase;
             letter-spacing: 0.2px;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+            text-align: center;
+            padding: 0 4px;
         }
 
-        /* 6. MAIN VIEWSPACE */
+        /* 7. AR VIEWSPACE MAIN CONTAINER */
         main {
             flex: 1;
-            background-color: #ffffff;
+            background-color: transparent; /* Changed from dark grey to let pastel gradient shine */
             position: relative;
             z-index: 10;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* 7. GLASSMorphic OPTION SELECT BOTTOM DRAWERS */
-        #modalOverlay {
-            position: fixed;
+        #arVideo {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #arCanvas {
+            position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.12);
-            backdrop-filter: blur(3px);
-            -webkit-backdrop-filter: blur(3px);
+            width: 100%;
+            height: 100%;
+            z-index: 15;
+            background-color: transparent; /* Lets body gradients pass through */
+        }
+
+        #arLoader {
+            position: absolute;
+            z-index: 25;
+            color: #000000; /* Darkened loader text */
+            font-size: 13px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.45);
+            padding: 10px 22px;
+            border-radius: 9999px;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        /* 8. GLASSMorphic SELECTION DRAWERS */
+        #modalOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             z-index: 150;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
         }
 
-        #modalOverlay.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
+        #modalOverlay.show { opacity: 1; pointer-events: auto; }
 
+        /* Floating Curved Transparent iOS Glass Sheet Option Modal */
         #optionSelectModal {
             position: fixed;
-            bottom: 0;
+            bottom: 24px; /* Floating look to reveal curved bottom glass edge */
             left: 50%;
-            transform: translate(-50%, 100%);
-            width: 100%;
-            max-width: 400px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 250, 250, 0.8) 100%);
-            backdrop-filter: blur(24px); /* Heavy optic diffusion */
-            -webkit-backdrop-filter: blur(24px);
-            border: 2px solid rgba(85, 85, 85, 0.25);
-            border-bottom: none;
-            border-radius: 24px 24px 0 0;
-            box-shadow: 
-                inset 0 1.5px 3px rgba(255, 255, 255, 1),
-                0 -6px 24px rgba(85, 85, 85, 0.08);
+            transform: translate(-50%, calc(100% + 24px));
+            width: calc(100% - 32px);
+            max-width: 380px;
+            border-radius: 24px; /* Classic iOS curve layout */
             padding: 24px;
             z-index: 160;
-            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        #optionSelectModal.show {
-            transform: translate(-50%, 0);
-        }
+        #optionSelectModal.show { transform: translate(-50%, 0); }
+        .modal-title { font-size: 15px; font-weight: 800; color: #111111; text-align: center; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.8px; position: relative; z-index: 10; text-shadow: 0 1px 1px rgba(255,255,255,0.4); }
+        .modal-subtitle { font-size: 12px; color: #333333; text-align: center; margin-bottom: 22px; letter-spacing: 0.3px; position: relative; z-index: 10; text-shadow: 0 1px 1px rgba(255,255,255,0.3); }
+        .modal-buttons { display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 10; }
 
-        .modal-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: #444444;
-            text-align: center;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        .modal-subtitle {
-            font-size: 12px;
-            color: #777777;
-            text-align: center;
-            margin-bottom: 22px;
-            letter-spacing: 0.3px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Confirm Glass Lens Button ( Obsidian Core ) */
+        /* Highly Polished Transparent Glass Confirm Button */
         .btn-confirm {
-            background: linear-gradient(135deg, rgba(85, 85, 85, 0.95) 0%, rgba(55, 55, 55, 0.85) 100%);
-            color: #ffffff;
-            border: 1.5px solid rgba(255, 255, 255, 0.15);
-            font-weight: 700;
+            backdrop-filter: blur(30px) saturate(140%) contrast(100%);
+            -webkit-backdrop-filter: blur(30px) saturate(140%) contrast(100%);
+            background: rgba(255, 255, 255, 0.15); 
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-top: 1.5px solid rgba(255, 255, 255, 0.75);
+            border-radius: 20px;
+            color: #000000; /* Darkened action confirm text */
+            font-weight: 800;
             font-size: 13.5px;
             padding: 13px;
-            border-radius: 12px;
             cursor: pointer;
-            box-shadow: 
-                inset 0 1px 1px rgba(255, 255, 255, 0.35),
-                0 4px 12px rgba(85, 85, 85, 0.15);
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             outline: none;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.65),
+                inset 0 8px 16px rgba(255, 255, 255, 0.25),
+                0 12px 30px rgba(100, 115, 200, 0.18),
+                0 0 1px 1.5px rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-confirm::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 50%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 100%);
+            border-radius: 20px 20px 0 0;
+            pointer-events: none;
         }
 
         .btn-confirm:hover {
-            background: linear-gradient(135deg, rgba(85, 85, 85, 1) 0%, rgba(55, 55, 55, 0.95) 100%);
-            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.65);
+            border-top-color: rgba(255, 255, 255, 0.9);
+            transform: translateY(-1px) scale(1.04);
             box-shadow: 
-                inset 0 1px 2px rgba(255, 255, 255, 0.45),
-                0 6px 16px rgba(85, 85, 85, 0.2);
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 10px 20px rgba(255, 255, 255, 0.35),
+                0 16px 40px rgba(100, 115, 200, 0.28),
+                0 0 1px 2px rgba(255, 255, 255, 0.25);
         }
 
-        .btn-confirm:active {
-            transform: translateY(1px);
-            box-shadow: 
-                inset 0 1.5px 3px rgba(0, 0, 0, 0.3),
-                0 2px 6px rgba(85, 85, 85, 0.1);
-        }
-
-        /* Cancel Glass Lens Button ( Crystal Frosted ) */
+        /* iOS-Style Pure Transparent Curved Glass Cancel Button */
         .btn-cancel {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%);
-            backdrop-filter: blur(4px);
-            color: #666666;
-            border: 1.5px solid rgba(85, 85, 85, 0.2);
-            font-weight: 600;
+            border-radius: 20px;
+            color: #000000; /* Darkened cancel text */
+            font-weight: 800;
             font-size: 13px;
             padding: 13px;
-            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            outline: none;
             text-align: center;
-            box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, 0.8);
+            text-shadow: 0 1px 1px rgba(255,255,255,0.4);
         }
 
         .btn-cancel:hover {
-            border-color: rgba(85, 85, 85, 0.45);
-            color: #444444;
-            transform: translateY(-1px);
+            transform: translateY(-1px) scale(1.04);
         }
 
-        .btn-cancel:active {
-            transform: translateY(1px);
-        }
-
-        /* 8. BOTTOM-LEFT SELECTION CONTAINER FOR FROSTED CAPSULES */
+        /* 9. BOTTOM-LEFT SELECTION TRAY CAPSULES */
         #selectionContainer {
             position: fixed;
             left: 20px;
@@ -443,145 +612,191 @@
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            gap: 8px; /* Clean gap spacing between separate rectangular bars */
+            gap: 12px;
             z-index: 100;
-            pointer-events: none; /* Let backdrop click events pass through */
+            pointer-events: none;
             max-height: calc(100vh - 120px);
             overflow-y: auto;
             scrollbar-width: none;
         }
 
-        #selectionContainer::-webkit-scrollbar {
-            display: none;
-        }
+        #selectionContainer::-webkit-scrollbar { display: none; }
 
-        /* INDIVIDUAL STACKED CAPSULE BARS (Frosted Lens Micro-Capsules) */
+        /* iOS-Style Pure Transparent Curved Glass Capsules - Zoom Lens effect */
         .selection-bar-item {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.55) 100%);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1.5px solid rgba(85, 85, 85, 0.22);
-            color: #444444;
-            font-weight: 700;
+            border-radius: 20px; /* Squircle glass capsule */
+            color: #000000; /* Darkened selection bar text */
+            font-weight: 800;
             font-size: 12.5px;
-            padding: 8px 16px;
-            border-radius: 9999px; /* Absolute Capsule shape */
-            box-shadow: 
-                inset 0 1.5px 2px rgba(255, 255, 255, 0.95), 
-                inset 0 -1.5px 2px rgba(0, 0, 0, 0.03),
-                0 4px 12px rgba(85, 85, 85, 0.08);
+            padding: 10px 20px;
             display: flex;
             align-items: center;
             gap: 12px;
-            pointer-events: auto; /* Active triggers for the individual close buttons */
+            pointer-events: auto;
             animation: slideInBar 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             max-width: 320px;
             word-break: break-word;
+            cursor: pointer;
+            transform: scale(1.04); /* Resting lens elevation zoom */
+            transform-origin: left center;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+        }
+
+        .selection-bar-item:hover {
+            transform: translateY(-2px) scale(1.08); /* Specular Lens pop-up on hover */
+        }
+
+        .selection-bar-item:active {
+            transform: translateY(0) scale(0.98);
         }
 
         @keyframes slideInBar {
-            from {
-                transform: translateY(15px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+            from { transform: translateY(15px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1.04); opacity: 1; }
         }
 
-        .selection-item-text {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Glass indicator bead */
+        .selection-item-text { display: inline-flex; align-items: center; gap: 8px; position: relative; z-index: 1; }
         .selection-item-text::before {
-            content: '';
-            display: inline-block;
-            width: 7px;
-            height: 7px;
-            background: radial-gradient(circle at 35% 35%, #999999 0%, #444444 100%);
-            border-radius: 50%;
-            flex-shrink: 0;
-            box-shadow: inset 0 1px 1px rgba(255,255,255,0.8);
+            content: ''; display: inline-block; width: 7px; height: 7px;
+            background: radial-gradient(circle at 35% 35%, #ffffff 0%, #333333 100%);
+            border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 1px 1px rgba(255,255,255,0.8);
         }
 
-        .selection-dismiss-btn {
-            background: none;
-            border: none;
-            color: #999999;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            outline: none;
-            padding-left: 2px;
-            line-height: 1;
-            transition: color 0.15s ease;
-        }
+        .selection-dismiss-btn { background: none; border: none; color: #111111; font-size: 16px; font-weight: 800; cursor: pointer; outline: none; padding-left: 2px; line-height: 1; transition: color 0.15s ease; position: relative; z-index: 1; }
+        .selection-dismiss-btn:hover { color: #ff5252; }
 
-        .selection-dismiss-btn:hover {
-            color: #444444;
+        /* RESPONSIVE DESIGN FOR SMALLER DISPLAYS */
+        @media (max-width: 640px) {
+            #galleryWrapper {
+                right: 15px;
+                width: 90px;
+                height: 420px;
+            }
+            .gallery-card {
+                width: 80px;
+                height: 80px;
+                border-radius: 18px;
+            }
+            #focalOutline {
+                width: 84px;
+                height: 84px;
+                border-radius: 18px;
+            }
+            #focalOutline::before {
+                top: -5px; left: -5px; right: -5px; bottom: -5px;
+                border-radius: 22px;
+            }
+            #necklaceGallery {
+                padding: 170px 0;
+            }
+            #switchCameraBtn {
+                padding: 8px 14px;
+                font-size: 11px;
+            }
+            #selectionContainer {
+                left: 15px;
+                bottom: 15px;
+            }
+            .segment-btn {
+                padding: 8px 14px;
+                font-size: 11px;
+            }
+            #optionSelectModal {
+                bottom: 15px;
+                width: calc(100% - 30px);
+                border-radius: 20px;
+            }
+            #weightFilterBar {
+                top: 75px;
+                right: 15px;
+                padding: 6px 12px;
+            }
+            .glass-input {
+                width: 50px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
         }
     </style>
 </head>
 <body onclick="closeDropdown()">
 
-    <!-- Ambient colored glass refraction testing lights -->
+    <!-- Ambient colored glass refraction lighting behind layouts -->
     <div class="color-orb orb-1"></div>
     <div class="color-orb orb-2"></div>
     <div class="color-orb orb-3"></div>
 
     <header>
-        <!-- Sleek Glass Lens Pill Shape Button -->
-        <button id="switchCameraBtn" onclick="triggerFeedback('Switching Lenses...')">Switch Camera</button>
+        <div class="controls-group">
+            <!-- Modern Segmented Controller -->
+            <div class="segmented-control liquid-glass-element">
+                <button id="viewImageBtn" class="segment-btn active" onclick="setViewMode('image')">View Image</button>
+                <button id="viewArBtn" class="segment-btn" onclick="setViewMode('ar')">View AR</button>
+            </div>
+            
+            <button id="switchCameraBtn" class="liquid-glass-element" onclick="toggleCameraFacing()">Switch Camera</button>
+        </div>
 
-        <div class="menu-container" onclick="event.stopPropagation()">
-            <!-- Sleek Glass Lens Circle Shape Button -->
-            <button id="menuBtn" onclick="toggleDropdown()">
-                <svg width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="22" height="3" rx="1.5" fill="#555555"/>
-                    <rect y="6.5" width="22" height="3" rx="1.5" fill="#555555"/>
-                    <rect y="13" width="22" height="3" rx="1.5" fill="#555555"/>
+        <div class="right-header-actions" onclick="event.stopPropagation()">
+            <!-- Liquid Glass Sort Button right before the menu button -->
+            <button id="sortBtn" class="liquid-glass-element" onclick="toggleSortBar()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                 </svg>
             </button>
-            <div id="dropdownMenu">
+
+            <!-- Circular Lens Trigger Button -->
+            <button id="menuBtn" class="liquid-glass-element" onclick="toggleDropdown()">
+                <svg width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="22" height="3" rx="1.5"/>
+                    <rect y="6.5" width="22" height="3" rx="1.5"/>
+                    <rect y="13" width="22" height="3" rx="1.5"/>
+                </svg>
+            </button>
+            
+            <div id="dropdownMenu" class="liquid-glass-element">
                 <button class="menu-item" onclick="selectCategory('Necklace')">Necklace</button>
                 <button class="menu-item" onclick="selectCategory('Earring')">Earring</button>
                 <button class="menu-item" onclick="selectCategory('Ring')">Ring</button>
                 <button class="menu-item" onclick="selectCategory('Collections')">Collections</button>
             </div>
         </div>
+
+        <!-- Specular iOS glass weight sorting filter bar -->
+        <div id="weightFilterBar" class="liquid-glass-element">
+            <span>Weight:</span>
+            <input type="number" id="minWeightInput" placeholder="Min" class="glass-input" oninput="onWeightFilterChange()">
+            <span>-</span>
+            <input type="number" id="maxWeightInput" placeholder="Max" class="glass-input" oninput="onWeightFilterChange()">
+        </div>
     </header>
 
     <main>
-        <!-- The Focal Gallery Wrapper with Fixed Viewfinder Outline -->
+        <!-- Overlay HUD components -->
+        <div id="arLoader">Configuring Lens...</div>
+        <video id="arVideo" autoplay playsinline muted></video>
+        <canvas id="arCanvas"></canvas>
+
+        <!-- Fixed focal slider track elements -->
         <div id="galleryWrapper">
-            
-            <!-- Constant Fixed Frame Box -->
             <div id="focalOutline"></div>
-
-            <!-- Scrollable element populated dynamically via JavaScript -->
             <div id="necklaceGallery"></div>
-
         </div>
     </main>
 
-    <!-- Modal Backdrop Overlay -->
+    <!-- Selection sheets -->
     <div id="modalOverlay" onclick="closeOptionSelect()"></div>
 
-    <!-- Slide-up Option Select Modal -->
-    <div id="optionSelectModal">
+    <div id="optionSelectModal" class="liquid-glass-element">
         <div class="modal-title" id="modalItemName">Select Item</div>
         <div class="modal-subtitle" id="modalItemCategory">Category</div>
         <div class="modal-buttons">
             <button class="btn-confirm" onclick="confirmSelection()">Confirm Selection</button>
-            <button class="btn-cancel" onclick="closeOptionSelect()">Cancel</button>
+            <button class="btn-cancel liquid-glass-element" onclick="closeOptionSelect()">Cancel</button>
         </div>
     </div>
 
-    <!-- Bottom-Left Selection Feedback Container (Houses Separate Rectangular Stacked Bars) -->
+    <!-- Active dynamic selection tabs -->
     <div id="selectionContainer"></div>
 
     <script>
@@ -590,294 +805,867 @@
         const modalOverlay = document.getElementById('modalOverlay');
         const optionSelectModal = document.getElementById('optionSelectModal');
         const selectionContainer = document.getElementById('selectionContainer');
+        const videoElement = document.getElementById('arVideo');
+        const canvasElement = document.getElementById('arCanvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const loader = document.getElementById('arLoader');
+
         let activeCategory = "";
         let selectedItemName = "";
-
-        // Track currently selected items per category
         let currentSelections = {};
+        
+        let currentMode = "image"; // Current tab state: "image" or "ar"
+        let cameraFacingMode = "user"; 
+        let activeCameraStream = null;
+        let isDemoMode = false; // Graceful model portrait mode (acts as a backup if cam is blocked)
+        let modelImage = null;
 
-        // MULTI-CATEGORY JEWELRY DATABASE
+        // Active highlighted selection for high-res Catalog layout on Plain Screen
+        let lastSelectedCategory = "";
+        let lastSelectedItemName = "";
+
+        // Track what item is currently aligned inside the center viewfinder for real-time scrolling previews
+        let centeredItemName = "";
+        let centeredCategory = "";
+
+        // Concurrency Gates to prevent browser freeze/overwhelming MediaPipe queue
+        let isFaceProcessing = false;
+        let isHandProcessing = false;
+
+        // Landmark State Cache to decouple rendering from async callbacks
+        let latestFaceLandmarks = null;
+        let latestHandLandmarks = null;
+
+        // Smoothers for stable necklace tracking
+        let smoothedNecklaceX = null;
+        let smoothedNecklaceY = null;
+        let smoothedNecklaceSize = null;
+
+        // Custom metallic colors mapping with dynamic random carat weights
         const jewelryData = {
             Necklace: [
-                {
-                    name: "Solitaire",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><path d="M 20 30 Q 50 85 80 30" stroke-linecap="round"/><rect x="45" y="65" width="10" height="10" transform="rotate(45 50 70)"/></svg>`
-                },
-                {
-                    name: "Lariat",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><path d="M 20 30 Q 50 85 80 30" stroke-linecap="round"/><line x1="50" y1="70" x2="50" y2="95" stroke-linecap="round"/></svg>`
-                },
-                {
-                    name: "Pearls",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><path d="M 20 30 Q 50 85 80 30" stroke-linecap="round"/><circle cx="50" cy="70" r="5"/><circle cx="38" cy="62" r="4"/><circle cx="62" cy="62" r="4"/></svg>`
-                },
-                {
-                    name: "Crescent",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><path d="M 20 30 Q 50 85 80 30" stroke-linecap="round"/><path d="M 50 65 A 8 8 0 1 0 50 81 A 6 6 0 1 1 50 65" /></svg>`
-                },
-                {
-                    name: "Eternity",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><path d="M 20 30 Q 50 85 80 30" stroke-linecap="round"/><circle cx="45" cy="70" r="6"/><circle cx="55" cy="70" r="6"/></svg>`
-                },
-                {
-                    name: "Royal",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><path d="M 20 30 Q 50 85 80 30" stroke-linecap="round"/><path d="M 50 68 L 58 75 L 50 85 L 42 75 Z" /></svg>`
-                }
+                { name: "Solitaire", color: "#ffd700", gemstone: "#00e5ff", premium: true, weight: 15.4 },
+                { name: "Lariat", color: "#e0e0e0", gemstone: "#ff1744", premium: true, weight: 8.2 },
+                { name: "Pearls", color: "#ffffff", gemstone: "#fcf8f2", premium: false, weight: 32.5 }
             ],
             Earring: [
-                {
-                    name: "Studs",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><polygon points="30,48 35,43 40,48 35,53" /><polygon points="60,48 65,43 70,48 65,53" /></svg>`
-                },
-                {
-                    name: "Hoops",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><path d="M 32,40 A 10,10 0 1,0 32,56" stroke-linecap="round" /><path d="M 68,40 A 10,10 0 1,0 68,56" stroke-linecap="round" /></svg>`
-                },
-                {
-                    name: "Sleek Drop",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><line x1="35" y1="35" x2="35" y2="58" stroke-linecap="round"/><circle cx="35" cy="62" r="3.5"/><line x1="65" y1="35" x2="65" y2="58" stroke-linecap="round"/><circle cx="65" cy="62" r="3.5"/></svg>`
-                },
-                {
-                    name: "Bar Drop",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><rect x="33" y="38" width="4" height="24" rx="1.5"/><rect x="63" y="38" width="4" height="24" rx="1.5"/></svg>`
-                },
-                {
-                    name: "Pearl Drop",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><circle cx="35" cy="42" r="4"/><circle cx="35" cy="54" r="6"/><circle cx="65" cy="42" r="4"/><circle cx="65" cy="54" r="6"/></svg>`
-                },
-                {
-                    name: "Leaf Hug",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="2.5"><path d="M 32,40 Q 38,44 34,54" stroke-linecap="round"/><path d="M 38,44 Q 30,48 34,54" stroke-linecap="round"/><path d="M 68,40 Q 62,44 66,54" stroke-linecap="round"/><path d="M 62,44 Q 70,48 66,54" stroke-linecap="round"/></svg>`
-                }
+                { name: "Studs", color: "#ffb74d", gemstone: "#e040fb", premium: true, weight: 4.5 },
+                { name: "Hoops", color: "#eceff1", gemstone: "none", premium: false, weight: 12.8 },
+                { name: "Pearl Drop", color: "#f5f5f5", gemstone: "#fff59d", premium: true, weight: 18.2 }
             ],
             Ring: [
-                {
-                    name: "Solitaire",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><circle cx="50" cy="60" r="18" /><path d="M 42 44 L 50 34 L 58 44" stroke-linecap="round"/><rect x="47" y="31" width="6" height="6" transform="rotate(45 50 34)" fill="none"/></svg>`
-                },
-                {
-                    name: "Bold Band",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="4.5"><circle cx="50" cy="50" r="18" /></svg>`
-                },
-                {
-                    name: "Infinity",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><circle cx="50" cy="60" r="18" /><path d="M 41,41 Q 45,36 50,41 Q 55,46 59,41 Q 55,36 50,41 Q 45,46 41,41 Z" /></svg>`
-                },
-                {
-                    name: "Signet",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><circle cx="50" cy="62" r="18" /><path d="M 34 46 L 66 46 L 58 36 L 42 36 Z" /></svg>`
-                },
-                {
-                    name: "Crown",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><circle cx="50" cy="62" r="18" /><path d="M 32 46 L 36 36 L 44 42 L 50 32 L 56 42 L 64 36 L 68 46 Z" stroke-linejoin="round"/></svg>`
-                },
-                {
-                    name: "Halo Stack",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="3"><circle cx="50" cy="60" r="18" /><circle cx="50" cy="38" r="6" stroke-dasharray="2,2" /><circle cx="50" cy="38" r="2" fill="#555555" /></svg>`
-                }
+                { name: "Solitaire", color: "#ffd700", gemstone: "#00e5ff", premium: true, weight: 6.4 },
+                { name: "Bold Band", color: "#ffb74d", gemstone: "none", premium: false, weight: 14.5 },
+                { name: "Infinity", color: "#eceff1", gemstone: "#a7ffeb", premium: true, weight: 5.8 },
             ],
             Collections: [
-                {
-                    name: "Minimal Set",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="2.5"><path d="M 25,25 Q 50,70 75,25" /><rect x="46" y="55" width="8" height="8" transform="rotate(45 50 59)"/><circle cx="25" cy="45" r="3"/><circle cx="75" cy="45" r="3"/></svg>`
-                },
-                {
-                    name: "Wave Trio",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="2.5"><path d="M 25,25 Q 50,70 75,25" /><path d="M 40,55 Q 50,45 60,55" /><circle cx="50" cy="80" r="10"/></svg>`
-                },
-                {
-                    name: "Crown Set",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="2.5"><path d="M 30,30 Q 50,70 70,30" /><circle cx="50" cy="80" r="10" /><path d="M 44 76 L 50 70 L 56 76 Z" /></svg>`
-                },
-                {
-                    name: "Bridal Duo",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="2.5"><circle cx="50" cy="55" r="16" /><circle cx="50" cy="63" r="16" /><path d="M 44,40 L 50,30 L 56,40" /><circle cx="50" cy="30" r="2" fill="#555555" /></svg>`
-                },
-                {
-                    name: "Pearl Set",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="2.5"><path d="M 30,25 Q 50,70 70,25" /><circle cx="50" cy="56" r="5"/><circle cx="25" cy="50" r="4"/><circle cx="75" cy="50" r="4"/></svg>`
-                },
-                {
-                    name: "Astral Set",
-                    svg: `<svg viewBox="0 0 100 100" fill="none" stroke="#555555" stroke-width="2.5"><path d="M 30,25 Q 50,70 70,25" /><path d="M 47,53 A 5,5 0 1 0 53,62 A 4,4 0 1 1 47,53" /></svg>`
-                }
+                { name: "Minimal Set", color: "#ffd700", gemstone: "#18ffff", premium: true, weight: 42.5 }
             ]
         };
 
-        // Redefined as a no-op function to prevent toast instructions from rendering at the bottom
-        function triggerFeedback(msg) {
-            /* Empty: toast notifications are disabled */
+        const jewelryImages = {
+            Necklace: {},
+            Earring: {},
+            Ring: {},
+            Collections: {}
+        };
+
+        // Utility to fetch clean display strings appended with item weights
+        function getItemDisplayName(cat, name) {
+            const item = jewelryData[cat]?.find(i => i.name === name);
+            return item ? `${item.name} (${item.weight}g)` : name;
         }
 
-        // 1. DYNAMIC FOCAL SCALING LOGIC
+        function renderProceduralAssets() {
+            Object.keys(jewelryData).forEach(cat => {
+                jewelryData[cat].forEach(item => {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = 512; // Higher resolution for gorgeous catalog rendering
+                    tempCanvas.height = 512;
+                    const ctx = tempCanvas.getContext('2d');
+
+                    ctx.clearRect(0, 0, 512, 512);
+                    ctx.shadowColor = "rgba(0,0,0,0.15)";
+                    ctx.shadowBlur = 12;
+                    ctx.shadowOffsetY = 6;
+
+                    // Establish high-end metallic stroke gradient style
+                    const metalGrad = ctx.createLinearGradient(120, 120, 392, 392);
+                    if (item.color === "#ffd700") {
+                        metalGrad.addColorStop(0, '#ffe57f');
+                        metalGrad.addColorStop(0.5, '#ffd700');
+                        metalGrad.addColorStop(1, '#ffb300');
+                    } else if (item.color === "#ffb74d") { // Rose Gold
+                        metalGrad.addColorStop(0, '#ffccbc');
+                        metalGrad.addColorStop(0.5, '#ff8a65');
+                        metalGrad.addColorStop(1, '#d84315');
+                    } else { // Silver/Chrome
+                        metalGrad.addColorStop(0, '#ffffff');
+                        metalGrad.addColorStop(0.5, '#e0e0e0');
+                        metalGrad.addColorStop(1, '#9e9e9e');
+                    }
+
+                    ctx.strokeStyle = metalGrad;
+                    ctx.lineWidth = 22;
+                    ctx.lineCap = "round";
+
+                    if (cat === "Necklace") {
+                        // Curved chain base
+                        ctx.beginPath();
+                        ctx.arc(256, 180, 150, 0.1 * Math.PI, 0.9 * Math.PI);
+                        ctx.stroke();
+
+                        // Pendant Loop
+                        ctx.lineWidth = 12;
+                        ctx.beginPath();
+                        ctx.arc(256, 336, 16, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // Main Gemstone
+                        if (item.gemstone) {
+                            ctx.shadowColor = "rgba(24, 255, 255, 0.45)";
+                            const gemGrad = ctx.createRadialGradient(256, 356, 4, 256, 356, 36);
+                            gemGrad.addColorStop(0, '#ffffff');
+                            gemGrad.addColorStop(0.3, item.gemstone);
+                            gemGrad.addColorStop(1, '#006064');
+                            ctx.fillStyle = gemGrad;
+                            ctx.beginPath();
+                            ctx.arc(256, 356, 28, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            // Diamond Luster Spark Overlay
+                            ctx.fillStyle = "rgba(255,255,255,0.9)";
+                            ctx.beginPath();
+                            ctx.moveTo(256, 336);
+                            ctx.quadraticCurveTo(256, 356, 276, 356);
+                            ctx.quadraticCurveTo(256, 356, 256, 376);
+                            ctx.quadraticCurveTo(256, 356, 236, 356);
+                            ctx.quadraticCurveTo(256, 356, 256, 336);
+                            ctx.fill();
+                        }
+                    } else if (cat === "Earring") {
+                        if (item.name === "Studs") {
+                            // Circular crown frame
+                            ctx.fillStyle = metalGrad;
+                            ctx.beginPath();
+                            ctx.arc(256, 256, 60, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Gem inlay
+                            ctx.fillStyle = item.gemstone;
+                            ctx.beginPath();
+                            ctx.arc(256, 256, 40, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (item.name === "Hoops") {
+                            ctx.beginPath();
+                            ctx.arc(256, 220, 100, -0.15 * Math.PI, 1.15 * Math.PI);
+                            ctx.stroke();
+                        } else { // Pearl Drop
+                            // Stud node
+                            ctx.fillStyle = metalGrad;
+                            ctx.beginPath();
+                            ctx.arc(256, 140, 20, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Hanger Bar
+                            ctx.beginPath();
+                            ctx.moveTo(256, 140);
+                            ctx.lineTo(256, 260);
+                            ctx.stroke();
+                            // Smooth Pearl teardrop
+                            const pearlGrad = ctx.createRadialGradient(244, 284, 6, 256, 296, 44);
+                            pearlGrad.addColorStop(0, '#ffffff');
+                            pearlGrad.addColorStop(1, '#cfd8dc');
+                            ctx.fillStyle = pearlGrad;
+                            ctx.beginPath();
+                            ctx.arc(256, 300, 36, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else if (cat === "Ring" || cat === "Collections") {
+                        // Band
+                        ctx.beginPath();
+                        ctx.arc(256, 280, 110, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // Crown Setting
+                        if (item.gemstone !== "none") {
+                            ctx.fillStyle = metalGrad;
+                            ctx.fillRect(220, 144, 72, 28);
+
+                            // Brilliant Jewel setting
+                            const jewelGrad = ctx.createLinearGradient(220, 100, 292, 160);
+                            jewelGrad.addColorStop(0, '#ffffff');
+                            jewelGrad.addColorStop(1, item.gemstone);
+                            ctx.fillStyle = jewelGrad;
+
+                            ctx.beginPath();
+                            ctx.moveTo(220, 144);
+                            ctx.lineTo(232, 100);
+                            ctx.lineTo(280, 100);
+                            ctx.lineTo(292, 144);
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+                    }
+
+                    const img = new Image();
+                    img.src = tempCanvas.toDataURL("image/png");
+                    jewelryImages[cat][item.name] = img;
+                });
+            });
+        }
+
+        renderProceduralAssets();
+
+        function generateModelImage() {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 640;
+            tempCanvas.height = 480;
+            const ctx = tempCanvas.getContext('2d');
+
+            // Dreamy pastel blue-lavender sky gradient
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, 480);
+            bgGrad.addColorStop(0, '#d5c6f9');
+            bgGrad.addColorStop(0.5, '#cce3fc');
+            bgGrad.addColorStop(1, '#c0f6ff');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, 640, 480);
+
+            // Left Soft Pastel Violet Palm Leaf Canopy
+            ctx.fillStyle = "rgba(164, 131, 237, 0.45)";
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(180, 40, 220, 160);
+            ctx.quadraticCurveTo(80, 120, 0, 80);
+            ctx.closePath();
+            ctx.fill();
+
+            // Right Soft Pastel Orchid Leaf Canopy
+            ctx.fillStyle = "rgba(227, 145, 232, 0.45)";
+            ctx.beginPath();
+            ctx.moveTo(640, 0);
+            ctx.quadraticCurveTo(460, 50, 420, 180);
+            ctx.quadraticCurveTo(560, 110, 640, 100);
+            ctx.closePath();
+            ctx.fill();
+
+            modelImage = new Image();
+            modelImage.src = tempCanvas.toDataURL("image/png");
+        }
+
+        generateModelImage();
+
+        // 1. MEDIAPIPE CONTEXT CORES & INITIALIZATION
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        faceMesh.onResults(onFaceResults);
+
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        hands.onResults(onHandResults);
+
+        function renderPipelineFrame() {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            const isShelfOpen = wrapper.classList.contains('show');
+
+            if (currentMode === "image") {
+                // VIEW IMAGE: Premium studio presentation layout with customized cinematic backdrop
+                canvasCtx.drawImage(modelImage, 0, 0, canvasElement.width, canvasElement.height);
+
+                // DYNAMIC MODE DISPATCH: Show centered item if selecting, otherwise show the confirmed selected item!
+                let displayCat = isShelfOpen ? activeCategory : lastSelectedCategory;
+                let displayName = isShelfOpen ? centeredItemName : lastSelectedItemName;
+
+                const currentImg = jewelryImages[displayCat]?.[displayName];
+                if (currentImg) {
+                    const renderSize = Math.min(canvasElement.width, canvasElement.height) * 0.5;
+                    
+                    canvasCtx.save();
+                    canvasCtx.shadowColor = "rgba(0,0,0,0.12)";
+                    canvasCtx.shadowBlur = 40;
+                    canvasCtx.shadowOffsetY = 20;
+                    canvasCtx.drawImage(
+                        currentImg, 
+                        canvasElement.width / 2 - renderSize / 2, 
+                        canvasElement.height / 2 - renderSize / 2 - 25, 
+                        renderSize, 
+                        renderSize
+                    );
+                    canvasCtx.restore();
+
+                    // Micro-Typography Metadata Display with weights
+                    const formattedDisplayName = getItemDisplayName(displayCat, displayName);
+                    canvasCtx.fillStyle = "#ffffff";
+                    canvasCtx.font = "bold 20px -apple-system, BlinkMacSystemFont, sans-serif";
+                    canvasCtx.textAlign = "center";
+                    canvasCtx.letterSpacing = "1.5px";
+                    canvasCtx.fillText(formattedDisplayName.toUpperCase(), canvasElement.width / 2, canvasElement.height / 2 + renderSize / 2 + 10);
+
+                    canvasCtx.fillStyle = "rgba(255, 255, 255, 0.85)";
+                    canvasCtx.font = "700 11px -apple-system, BlinkMacSystemFont, sans-serif";
+                    canvasCtx.letterSpacing = "2px";
+                    
+                    const subLabel = isShelfOpen ? "PREVIEWING VIEWPORT" : "SAVED TO TRAY";
+                    canvasCtx.fillText(`${displayCat.toUpperCase()} COLLECTION | ${subLabel}`, canvasElement.width / 2, canvasElement.height / 2 + renderSize / 2 + 32);
+                } else {
+                    // Plain Screen blank state instructions
+                    canvasCtx.fillStyle = "#ffffff";
+                    canvasCtx.font = "bold 13px -apple-system, BlinkMacSystemFont, sans-serif";
+                    canvasCtx.textAlign = "center";
+                    canvasCtx.letterSpacing = "1.5px";
+                    canvasCtx.fillText("ELEGANCE DEFINED", canvasElement.width / 2, canvasElement.height / 2 - 20);
+
+                    canvasCtx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                    canvasCtx.font = "600 11px -apple-system, BlinkMacSystemFont, sans-serif";
+                    canvasCtx.letterSpacing = "2px";
+                    canvasCtx.fillText("SELECT A CATEGORY FROM THE MENU TO BEGIN PREVIEWING", canvasElement.width / 2, canvasElement.height / 2 + 10);
+                }
+                canvasCtx.restore();
+
+            } else {
+                // VIEW AR: Augmented Reality Render Pipeline
+                if (isDemoMode) {
+                    // If demo mode fallback, paint procedurally drawn face profile
+                    canvasCtx.drawImage(modelImage, 0, 0, canvasElement.width, canvasElement.height);
+                    renderDemoModeOverlays();
+                    canvasCtx.restore();
+                } else {
+                    if (videoElement.readyState >= 2) {
+                        // Draw mirror video context to canvas
+                        canvasCtx.translate(canvasElement.width, 0);
+                        canvasCtx.scale(-1, 1);
+                        canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+                        canvasCtx.restore(); // Restore context mapping coordinates for correct 2D overlay anchoring
+
+                        // Target the correct category to send to MediaPipe context models
+                        let targetMeshActive = isShelfOpen ? (activeCategory === "Necklace" || activeCategory === "Earring" || activeCategory === "Collections") : (currentSelections["Necklace"] || currentSelections["Earring"] || currentSelections["Collections"]);
+                        let targetHandsActive = isShelfOpen ? (activeCategory === "Ring") : currentSelections["Ring"];
+
+                        // Evaluate pipeline targets with thread safe concurrency locks
+                        if (targetMeshActive && !isFaceProcessing) {
+                            isFaceProcessing = true;
+                            faceMesh.send({ image: videoElement }).catch(err => {
+                                isFaceProcessing = false;
+                            });
+                        }
+                        if (targetHandsActive && !isHandProcessing) {
+                            isHandProcessing = true;
+                            hands.send({ image: videoElement }).catch(err => {
+                                isHandProcessing = false;
+                            });
+                        }
+
+                        // Render active overlay projections
+                        drawLiveOverlays();
+                    } else {
+                        // Lens initialization loader background (Defaulting to Control Center leaf backdrop to let refractions shine)
+                        canvasCtx.drawImage(modelImage, 0, 0, canvasElement.width, canvasElement.height);
+                        canvasCtx.restore();
+                    }
+                }
+            }
+            requestAnimationFrame(renderPipelineFrame);
+        }
+
+        // 2. AR LANDMARK CORRELATION ANCHOR STATE CACHING
+        function onFaceResults(results) {
+            isFaceProcessing = false; 
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                latestFaceLandmarks = results.multiFaceLandmarks[0];
+            } else {
+                latestFaceLandmarks = null;
+            }
+        }
+
+        // LANDMARK STATE CACHE
+        function onHandResults(results) {
+            isHandProcessing = false; 
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                latestHandLandmarks = results.multiHandLandmarks[0];
+            } else {
+                latestHandLandmarks = null;
+            }
+        }
+
+        // RESOLVE DYNAMIC OR PERMANENT SAVED SELECTIONS FOR DRAWING
+        function resolveActiveAssets() {
+            const isShelfOpen = wrapper.classList.contains('show');
+
+            let earringToDraw = null;
+            let necklaceToDraw = null;
+            let ringToDraw = null;
+            let collectionToDraw = null;
+
+            // 1. Resolve Collections
+            let activeCollection = (isShelfOpen && activeCategory === "Collections") ? centeredItemName : currentSelections["Collections"];
+            if (activeCollection) {
+                earringToDraw = "Studs";
+                necklaceToDraw = "Solitaire";
+            } else {
+                // 2. Resolve individual items (scrolling preview overrides saved selections in real-time)
+                earringToDraw = (isShelfOpen && activeCategory === "Earring") ? centeredItemName : currentSelections["Earring"];
+                necklaceToDraw = (isShelfOpen && activeCategory === "Necklace") ? centeredItemName : currentSelections["Necklace"];
+                ringToDraw = (isShelfOpen && activeCategory === "Ring") ? centeredItemName : currentSelections["Ring"];
+            }
+
+            return { earringToDraw, necklaceToDraw, ringToDraw };
+        }
+
+        // DRAW UNIFIED LIVE OVERLAYS FROM STATE CACHE
+        function drawLiveOverlays() {
+            if (isDemoMode) return;
+
+            const { earringToDraw, necklaceToDraw, ringToDraw } = resolveActiveAssets();
+
+            // Anchor Earring Assets
+            if (earringToDraw && latestFaceLandmarks) {
+                const activeEarring = jewelryImages["Earring"][earringToDraw];
+                if (activeEarring) {
+                    drawAssetAtLandmark(latestFaceLandmarks[234], 0.12, activeEarring, 0);
+                    drawAssetAtLandmark(latestFaceLandmarks[454], 0.12, activeEarring, 0);
+                }
+            }
+
+            // Anchor Necklace Assets (Calculated lower down neck via ear midpoint axis lines)
+            if (necklaceToDraw && latestFaceLandmarks) {
+                const activeNecklace = jewelryImages["Necklace"][necklaceToDraw];
+                if (activeNecklace) {
+                    const earLeft = latestFaceLandmarks[234];
+                    const earRight = latestFaceLandmarks[454];
+                    const headCenterX = (earLeft.x + earRight.x) / 2;
+                    const headCenterY = (earLeft.y + earRight.y) / 2;
+
+                    const chin = latestFaceLandmarks[152];
+                    const forehead = latestFaceLandmarks[10];
+                    const faceHeightScale = Math.abs(chin.y - forehead.y);
+
+                    const targetX = (1 - headCenterX) * canvasElement.width;
+                    const targetY = (headCenterY + (faceHeightScale * 1.05)) * canvasElement.height;
+                    const size = canvasElement.width * faceHeightScale * 1.5;
+
+                    // Exponential low-pass smoothing filter
+                    if (smoothedNecklaceX === null) {
+                        smoothedNecklaceX = targetX;
+                        smoothedNecklaceY = targetY;
+                        smoothedNecklaceSize = size;
+                    } else {
+                        smoothedNecklaceX = smoothedNecklaceX * 0.85 + targetX * 0.15;
+                        smoothedNecklaceY = smoothedNecklaceY * 0.85 + targetY * 0.15;
+                        smoothedNecklaceSize = smoothedNecklaceSize * 0.85 + size * 0.15;
+                    }
+
+                    canvasCtx.save();
+                    canvasCtx.drawImage(activeNecklace, smoothedNecklaceX - smoothedNecklaceSize/2, smoothedNecklaceY - smoothedNecklaceSize/2, smoothedNecklaceSize, smoothedNecklaceSize);
+                    canvasCtx.restore();
+                }
+            } else {
+                smoothedNecklaceX = null;
+                smoothedNecklaceY = null;
+                smoothedNecklaceSize = null;
+            }
+
+            // Anchor Ring Asset
+            if (ringToDraw && latestHandLandmarks) {
+                const activeRing = jewelryImages["Ring"][ringToDraw];
+                if (activeRing) {
+                    const ringBase = latestHandLandmarks[13];
+                    const ringTip = latestHandLandmarks[14];
+
+                    const dx = ringTip.x - ringBase.x;
+                    const dy = ringTip.y - ringBase.y;
+                    const rotation = Math.atan2(dy, dx) - Math.PI / 2;
+                    const scaleFactor = Math.sqrt(dx*dx + dy*dy) * 0.7;
+
+                    drawAssetAtLandmark(ringBase, scaleFactor, activeRing, rotation);
+                }
+            }
+        }
+
+        function drawAssetAtLandmark(landmark, scaleFactor, imgAsset, rotation = 0) {
+            const targetX = (1 - landmark.x) * canvasElement.width;
+            const targetY = landmark.y * canvasElement.height;
+            const size = canvasElement.width * scaleFactor;
+
+            canvasCtx.save();
+            canvasCtx.translate(targetX, targetY);
+            canvasCtx.rotate(rotation);
+            canvasCtx.drawImage(imgAsset, -size / 2, -size / 2, size, size);
+            canvasCtx.restore();
+        }
+
+        function renderDemoModeOverlays() {
+            const { earringToDraw, necklaceToDraw, ringToDraw } = resolveActiveAssets();
+
+            if (earringToDraw) {
+                const activeEarring = jewelryImages["Earring"][earringToDraw];
+                if (activeEarring) {
+                    canvasCtx.drawImage(activeEarring, 215, 230, 40, 40);
+                    canvasCtx.drawImage(activeEarring, 385, 230, 40, 40);
+                }
+            }
+
+            if (necklaceToDraw) {
+                const activeNecklace = jewelryImages["Necklace"][necklaceToDraw];
+                if (activeNecklace) {
+                    canvasCtx.drawImage(activeNecklace, 220, 340, 200, 200);
+                }
+            }
+
+            if (ringToDraw) {
+                const activeRing = jewelryImages["Ring"][ringToDraw];
+                if (activeRing) {
+                    canvasCtx.drawImage(activeRing, 460, 400, 50, 50);
+                }
+            }
+        }
+
+        // 3. HARDWARE CAPTURE CONTROL & VIEWPORT MANAGEMENTS
+        async function initCamera() {
+            if (currentMode === "image") {
+                // Terminate camera feeds and hide loaders in View Image Catalog
+                stopCameraStream();
+                loader.style.opacity = "0";
+                return;
+            }
+
+            if (isDemoMode) {
+                loader.style.opacity = "0";
+                return;
+            }
+
+            loader.style.opacity = "1";
+            loader.innerText = "Configuring Lens...";
+
+            if (activeCameraStream) {
+                activeCameraStream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                activeCameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: cameraFacingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+                videoElement.srcObject = activeCameraStream;
+                
+                // Explicit trigger for autoplay blocks on various frames
+                videoElement.play().then(() => {
+                    adjustCanvasDimensions();
+                    loader.style.opacity = "0";
+                }).catch(e => {
+                    console.warn("Autoplay block detected:", e);
+                });
+
+            } catch (err) {
+                console.warn("Camera access denied. Launching AR mockup preview mode.", err);
+                toggleDemoMode(true);
+            }
+        }
+
+        function stopCameraStream() {
+            if (activeCameraStream) {
+                activeCameraStream.getTracks().forEach(track => track.stop());
+                activeCameraStream = null;
+            }
+            videoElement.srcObject = null;
+        }
+
+        function adjustCanvasDimensions() {
+            const containerWidth = canvasElement.parentElement.clientWidth;
+            const containerHeight = canvasElement.parentElement.clientHeight;
+            
+            canvasElement.width = containerWidth;
+            canvasElement.height = containerHeight;
+        }
+
+        // Toggle Segment Views Mode ("image" or "ar")
+        function setViewMode(mode) {
+            currentMode = mode;
+            
+            // Highlight active button states
+            document.getElementById('viewImageBtn').classList.toggle('active', mode === 'image');
+            document.getElementById('viewArBtn').classList.toggle('active', mode === 'ar');
+
+            const switchBtn = document.getElementById('switchCameraBtn');
+            if (mode === 'ar') {
+                switchBtn.classList.add('show');
+                // Auto restore live stream
+                isDemoMode = false; 
+                initCamera();
+            } else {
+                switchBtn.classList.remove('show');
+                stopCameraStream();
+                loader.style.opacity = "0";
+            }
+            adjustCanvasDimensions();
+        }
+
+        function toggleCameraFacing() {
+            isDemoMode = false;
+            cameraFacingMode = cameraFacingMode === "user" ? "environment" : "user";
+            initCamera();
+        }
+
+        function toggleDemoMode(forceTrue = false) {
+            if (forceTrue) {
+                isDemoMode = true;
+                stopCameraStream();
+                loader.style.opacity = "0";
+                adjustCanvasDimensions();
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            adjustCanvasDimensions();
+            applyFocalScale();
+        });
+
+        window.addEventListener('load', () => {
+            adjustCanvasDimensions();
+            requestAnimationFrame(renderPipelineFrame);
+        });
+
+        // 4. INTERACTIVE SELECTION SLIDER
         function applyFocalScale() {
             const galleryCenter = gallery.getBoundingClientRect().top + (gallery.offsetHeight / 2);
             const cards = gallery.querySelectorAll('.gallery-card');
-            
+
+            let closestCard = null;
+            let minDistance = Infinity;
+
             cards.forEach(card => {
                 const cardRect = card.getBoundingClientRect();
                 const cardCenter = cardRect.top + (cardRect.height / 2);
-                
-                // Calculate distance from center (0 to roughly 250)
                 const distanceFromCenter = Math.abs(galleryCenter - cardCenter);
-                
-                /* Scale Logic:
-                   - At center (dist 0): Scale 1.0 (Full Size inside fixed outline box)
-                   - Above/Below (dist ~120): Scale ~0.8 (Slightly Smaller)
-                   - Edge items (dist > 200): Scale ~0.6 (Smallest)
-                */
-                let scale = 1 - (distanceFromCenter / 450); 
-                scale = Math.max(0.6, Math.min(1.0, scale)); // Clamp between 0.6 and 1.0
-                
+
+                let scale = 1 - (distanceFromCenter / 450);
+                scale = Math.max(0.6, Math.min(1.0, scale));
+
                 card.style.transform = `scale(${scale})`;
-                card.style.opacity = scale; // Subtly fade edge items
+                card.style.opacity = scale;
+
+                // Detect which card is closest to the focal center point
+                if (distanceFromCenter < minDistance) {
+                    minDistance = distanceFromCenter;
+                    closestCard = card;
+                }
             });
+
+            // Dynamically update the live-scrolling preview targets
+            if (closestCard && wrapper.classList.contains('show')) {
+                const itemName = closestCard.dataset.name;
+                if (centeredItemName !== itemName || centeredCategory !== activeCategory) {
+                    centeredItemName = itemName;
+                    centeredCategory = activeCategory;
+                }
+            }
         }
 
         gallery.addEventListener('scroll', applyFocalScale);
 
-        // Populate cards inside the container dynamically
         function renderCategoryCards(category) {
             const list = jewelryData[category] || [];
-            gallery.innerHTML = ""; // Clear existing elements
+            gallery.innerHTML = "";
 
-            list.forEach(item => {
+            // Apply Dynamic Weight Filters
+            const minW = parseFloat(document.getElementById('minWeightInput').value) || 0;
+            const maxW = parseFloat(document.getElementById('maxWeightInput').value) || Infinity;
+
+            const filteredList = list.filter(item => item.weight >= minW && item.weight <= maxW);
+
+            if (filteredList.length === 0) {
+                const fallbackMessage = document.createElement('div');
+                fallbackMessage.style.cssText = "color: #111111; font-size: 11px; font-weight: 700; text-align: center; padding: 20px; text-shadow: 0 1px 1px rgba(255,255,255,0.4);";
+                fallbackMessage.innerText = "NO ITEMS IN RANGE";
+                gallery.appendChild(fallbackMessage);
+                centeredItemName = "";
+                return;
+            }
+
+            filteredList.forEach(item => {
                 const card = document.createElement('div');
-                card.className = "gallery-card";
+                card.className = "gallery-card liquid-glass-element";
+                card.dataset.name = item.name; // Keep tracking robust
                 card.onclick = (e) => handleCardSelection(item.name, card);
-                
+
+                // Assign procedurally rendered assets directly
+                const cachedAsset = jewelryImages[category][item.name].src;
+
                 card.innerHTML = `
                     <div class="svg-container">
-                        ${item.svg}
+                        <img src="${cachedAsset}" alt="${item.name}"/>
                     </div>
-                    <span class="card-name">${item.name}</span>
+                    <span class="card-name">${item.name}<br>(${item.weight}g)</span>
                 `;
                 gallery.appendChild(card);
             });
         }
 
-        // 2. INTERACTIVE SELECTION HANDLING
         function handleCardSelection(itemName, cardElement) {
             const galleryCenter = gallery.getBoundingClientRect().top + (gallery.offsetHeight / 2);
             const cardRect = cardElement.getBoundingClientRect();
             const cardCenter = cardRect.top + (cardRect.height / 2);
-            
-            // Check if the clicked card is precisely in the center viewfinder
-            const isCentered = Math.abs(galleryCenter - cardCenter) < 15; 
+            const isCentered = Math.abs(galleryCenter - cardCenter) < 15;
 
             if (!isCentered) {
-                // If it is NOT centered, scroll it smoothly to snap into the viewfinder
                 cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
-                // If it IS centered (highlighted), trigger the bottom option select modal
                 openOptionSelect(itemName);
             }
         }
 
-        // Open Bottom Sheet Option Modal
         function openOptionSelect(itemName) {
             selectedItemName = itemName;
-            document.getElementById('modalItemName').innerText = selectedItemName;
+            document.getElementById('modalItemName').innerText = getItemDisplayName(activeCategory, selectedItemName);
             document.getElementById('modalItemCategory').innerText = `${activeCategory} Collection`;
-            
             modalOverlay.classList.add('show');
             optionSelectModal.classList.add('show');
         }
 
-        // Close Bottom Sheet Option Modal
         function closeOptionSelect() {
             modalOverlay.classList.remove('show');
             optionSelectModal.classList.remove('show');
         }
 
-        // Confirm Item Selection
         function confirmSelection() {
             closeOptionSelect();
             
+            // Set permanent saved selected category & name targets
+            lastSelectedCategory = activeCategory;
+            lastSelectedItemName = selectedItemName;
+
             if (activeCategory === 'Collections') {
-                // If 'Collections' is selected, erase all other items and ONLY keep Collections
                 currentSelections = { Collections: selectedItemName };
             } else {
-                // If choosing an individual item, erase the active 'Collections' item if present
                 delete currentSelections['Collections'];
-                
-                // Add or alter (overwrite) item under this active category
                 currentSelections[activeCategory] = selectedItemName;
             }
-            
             updateSelectionDisplay();
+
+            // Retract shelf immediately on confirmation to transition back into the "plain screen with selected at bottom"
+            wrapper.classList.remove('show');
+            
+            // Clear current scroll centered preview state
+            centeredItemName = "";
+            centeredCategory = "";
         }
 
-        // Re-renders the bottom-left rectangular container with multiple separate bars stacked vertically
         function updateSelectionDisplay() {
-            selectionContainer.innerHTML = ""; // Reset container content
-            
+            selectionContainer.innerHTML = "";
             const categories = Object.keys(currentSelections);
             if (categories.length === 0) return;
-            
-            // Render each active selection as its own clean rectangular bar
+
             categories.forEach(cat => {
                 const itemBar = document.createElement('div');
-                itemBar.className = "selection-bar-item";
+                itemBar.className = "selection-bar-item liquid-glass-element";
                 
-                // Selection description
+                // Allow tapping a confirmed bottom capsule on the plain screen to display its detail image
+                itemBar.onclick = () => {
+                    if (!wrapper.classList.contains('show')) {
+                        lastSelectedCategory = cat;
+                        lastSelectedItemName = currentSelections[cat];
+                    }
+                };
+
                 const textSpan = document.createElement('span');
                 textSpan.className = "selection-item-text";
-                textSpan.innerText = `${cat}: ${currentSelections[cat]}`;
-                
-                // Individual dismiss button
+                textSpan.innerText = `${cat}: ${getItemDisplayName(cat, currentSelections[cat])}`;
+
                 const dismissBtn = document.createElement('button');
                 dismissBtn.className = "selection-dismiss-btn";
                 dismissBtn.innerHTML = "&times;";
-                dismissBtn.title = `Clear ${cat}`;
                 dismissBtn.onclick = (e) => {
                     e.stopPropagation();
                     deleteSingleSelection(cat);
                 };
-                
+
                 itemBar.appendChild(textSpan);
                 itemBar.appendChild(dismissBtn);
-                selectionContainer.appendChild(itemBar); // Appends to bottom of the stacked group
+                selectionContainer.appendChild(itemBar);
             });
         }
 
-        // Clear a single selection bar independently
         function deleteSingleSelection(cat) {
             delete currentSelections[cat];
+            
+            // If the deleted category was currently displayed on the plain screen, update the view to another saved item
+            if (lastSelectedCategory === cat) {
+                const remainingCats = Object.keys(currentSelections);
+                if (remainingCats.length > 0) {
+                    lastSelectedCategory = remainingCats[0];
+                    lastSelectedItemName = currentSelections[lastSelectedCategory];
+                } else {
+                    lastSelectedCategory = "";
+                    lastSelectedItemName = "";
+                }
+            }
+            
             updateSelectionDisplay();
         }
 
-        // 3. INTERFACE CONTROLS
+        // Toggle Sort Filter drawer
+        function toggleSortBar() {
+            const filterBar = document.getElementById('weightFilterBar');
+            filterBar.classList.toggle('show');
+            // Close dropdown if open
+            document.getElementById('dropdownMenu').classList.remove('show');
+        }
+
+        // Dynamic Filtering change handler
+        function onWeightFilterChange() {
+            if (activeCategory) {
+                renderCategoryCards(activeCategory);
+                applyFocalScale();
+            }
+        }
+
+        // Dropdown Controls
         function toggleDropdown() {
             const dropdown = document.getElementById('dropdownMenu');
-            
-            // If the focal gallery wrapper is currently showing, retract it immediately
+            document.getElementById('weightFilterBar').classList.remove('show'); // Auto close filter bar
+
             if (wrapper.classList.contains('show')) {
+                // If the user clicks the menu trigger while selecting, retract the shelf instantly to return to plain screen
                 wrapper.classList.remove('show');
                 dropdown.classList.remove('show');
+                
+                // Reset scrolling preview overrides
+                centeredItemName = "";
+                centeredCategory = "";
             } else {
-                // Otherwise, normal behavior: toggle dropdown options
                 dropdown.classList.toggle('show');
             }
         }
 
-        // Close dropdown when clicking outside (on the main screen)
         function closeDropdown() {
             document.getElementById('dropdownMenu').classList.remove('show');
         }
 
-        // Opens catalog view for a selected category
         function selectCategory(cat) {
             activeCategory = cat;
             renderCategoryCards(cat);
-            
-            // Slide in the wrapper and trigger the scaling update
             wrapper.classList.add('show');
             setTimeout(() => {
                 applyFocalScale();
-                gallery.scrollTop = 0; // Reset scroll position to top
-            }, 50);
-
+                gallery.scrollTop = 0; // Snap immediately to first asset
+            }, 60);
             closeDropdown();
         }
     </script>
